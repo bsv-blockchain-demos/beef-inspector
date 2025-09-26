@@ -123,12 +123,20 @@ const Index = () => {
                 try {
                   spend.validate();
                 } catch (spendError: any) {
+                  // Add both unlocking and locking script information for failed inputs
+                  scriptErrors.push({
+                    inputIndex: i,
+                    scriptType: 'unlocking',
+                    asm: input.unlockingScript?.toASM() || "N/A",
+                    error: spendError.message || "Script execution failed",
+                    executionPoint: undefined
+                  });
                   scriptErrors.push({
                     inputIndex: i,
                     scriptType: 'locking',
                     asm: sourceOutput.lockingScript.toASM(),
                     error: spendError.message || "Script execution failed",
-                    executionPoint: undefined // BSV SDK doesn't expose execution position directly
+                    executionPoint: undefined
                   });
                 }
               }

@@ -29,6 +29,15 @@ export const ScriptDebugger = ({ scriptErrors }: ScriptDebuggerProps) => {
     return null;
   }
 
+  // Group script errors by input index
+  const errorsByInput = scriptErrors.reduce((acc, error) => {
+    if (!acc[error.inputIndex]) {
+      acc[error.inputIndex] = [];
+    }
+    acc[error.inputIndex].push(error);
+    return acc;
+  }, {} as Record<number, ScriptError[]>);
+
   const getSighashTypeName = (sighashByte: number): string[] => {
     const types: string[] = [];
     
@@ -112,46 +121,55 @@ export const ScriptDebugger = ({ scriptErrors }: ScriptDebuggerProps) => {
             Script Execution Errors
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {scriptErrors.map((error, index) => (
-            <div key={index} className="space-y-3">
+        <CardContent className="space-y-6">
+          {Object.entries(errorsByInput).map(([inputIndex, errors], groupIndex) => (
+            <div key={inputIndex} className="space-y-4">
               <div className="flex items-center gap-2">
                 <AlertTriangle className="h-4 w-4 text-destructive" />
-                <Badge variant="destructive">Input {error.inputIndex}</Badge>
-                <Badge variant="outline">{error.scriptType} script</Badge>
+                <Badge variant="destructive">Input {inputIndex}</Badge>
               </div>
               
-              <div className="space-y-2">
-                <div className="text-sm font-medium flex items-center gap-2">
-                  <Target className="h-4 w-4" />
-                  Script ASM
-                </div>
-                <ScrollArea className="h-[120px]">
-                  <div className="code-block text-xs break-all whitespace-pre-wrap">
-                    {renderAsmWithSighashTooltips(error.asm, error.executionPoint).map((element, elemIndex) => (
-                      <span key={elemIndex}>
-                        {element}
-                        {elemIndex < renderAsmWithSighashTooltips(error.asm, error.executionPoint).length - 1 ? ' ' : ''}
-                      </span>
-                    ))}
+              {/* Sort to show unlocking script first, then locking script */}
+              {errors
+                .sort((a, b) => a.scriptType === 'unlocking' ? -1 : 1)
+                .map((error, errorIndex) => (
+                  <div key={errorIndex} className="space-y-3">
+                    <div className="space-y-2">
+                      <div className="text-sm font-medium flex items-center gap-2">
+                        <Target className="h-4 w-4" />
+                        <Badge variant="outline">{error.scriptType} script</Badge>
+                        Script ASM
+                      </div>
+                      <ScrollArea className="h-[120px]">
+                        <div className="code-block text-xs break-words whitespace-normal">
+                          {renderAsmWithSighashTooltips(error.asm, error.executionPoint).map((element, elemIndex) => (
+                            <span key={elemIndex}>
+                              {element}
+                              {elemIndex < renderAsmWithSighashTooltips(error.asm, error.executionPoint).length - 1 ? ' ' : ''}
+                            </span>
+                          ))}
+                        </div>
+                      </ScrollArea>
+                    </div>
+
+                    {errorIndex === 0 && (
+                      <div className="space-y-2">
+                        <div className="text-sm font-medium text-destructive">Error Details</div>
+                        <div className="code-block text-destructive bg-destructive/10 border-destructive/20 text-xs break-words">
+                          {error.error}
+                        </div>
+                      </div>
+                    )}
+
+                    {error.executionPoint !== undefined && (
+                      <div className="text-xs text-muted-foreground">
+                        Execution failed at opcode position: {error.executionPoint}
+                      </div>
+                    )}
                   </div>
-                </ScrollArea>
-              </div>
+                ))}
 
-              <div className="space-y-2">
-                <div className="text-sm font-medium text-destructive">Error Details</div>
-                <div className="code-block text-destructive bg-destructive/10 border-destructive/20 text-xs">
-                  {error.error}
-                </div>
-              </div>
-
-              {error.executionPoint !== undefined && (
-                <div className="text-xs text-muted-foreground">
-                  Execution failed at opcode position: {error.executionPoint}
-                </div>
-              )}
-
-              {index < scriptErrors.length - 1 && <Separator />}
+              {groupIndex < Object.keys(errorsByInput).length - 1 && <Separator />}
             </div>
           ))}
         </CardContent>
