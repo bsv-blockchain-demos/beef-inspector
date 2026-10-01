@@ -1,73 +1,67 @@
-# Welcome to your Lovable project
+# BEEF Inspector
 
-## Project info
+A browser-based tool for inspecting BSV transactions supplied in BEEF format. The interface, labelled **BSV Transaction Debugger**, displays transaction metadata and diagnostic information from the BSV SDK.
 
-**URL**: https://lovable.dev/projects/c27f7665-3349-42cd-8831-b52c94ec00e3
+## Current status
 
-## How can I edit this code?
+The validation indicator has a known correctness issue: the application treats a completed `Transaction.verify()` call as success without checking its boolean result. Transactions for which the SDK returns `false` can therefore appear as **VALID**. Use the tool for inspection while this issue remains unresolved; the displayed status is not a reliable validation decision.
 
-There are several ways of editing your application.
+## What it shows
 
-**Use Lovable**
+- Transaction ID, version, input and output counts, lock time and serialised transaction size.
+- Parsing and verification exceptions.
+- A BEEF structure log when verification throws an exception.
+- Input locking and unlocking scripts in assembly form when script diagnostics are available.
+- Signature hash flag tooltips for recognised signature-shaped values.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/c27f7665-3349-42cd-8831-b52c94ec00e3) and start prompting.
+## Run locally
 
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+Use Node.js 22 and npm.
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+git clone https://github.com/bsv-blockchain-demos/beef-inspector.git
+cd beef-inspector
+npm ci
+npm run dev -- --host 127.0.0.1
 ```
 
-**Edit a file directly in GitHub**
+Open `http://localhost:8080`, or the URL printed by Vite. No application server, database or environment file is required.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Inspect a transaction
 
-**Use GitHub Codespaces**
+1. Paste a hex-encoded BEEF payload into **Transaction Hex (BEEF Format)**.
+2. Select **Analyze Transaction**.
+3. Review the transaction summary and any diagnostic sections that appear.
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+The input must contain BEEF data, including the source transactions or proofs needed for verification. A transaction ID or ordinary raw transaction hex is not the expected input format.
 
-## What technologies are used for this project?
+Parsing runs in the browser. Verification uses the SDK's default chain tracker and can make external requests when checking Merkle proofs. The interface does not expose network or chain tracker configuration.
 
-This project is built with:
+## Build and preview
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+```sh
+npm run build
+npm run preview
+```
 
-## How can I deploy this project?
+The production bundle is written to `dist/`. Serve that directory with a static host. The project also defines `npm run lint` and `npm run build:dev`; it has no automated test script.
 
-Simply open [Lovable](https://lovable.dev/projects/c27f7665-3349-42cd-8831-b52c94ec00e3) and click on Share -> Publish.
+## Source guide
 
-## Can I connect a custom domain to my Lovable project?
+| File | Responsibility |
+| --- | --- |
+| [src/pages/Index.tsx](src/pages/Index.tsx) | BEEF parsing, SDK verification and diagnostic collection. |
+| [src/components/TransactionInput.tsx](src/components/TransactionInput.tsx) | Hex input and submission. |
+| [src/components/TransactionDetails.tsx](src/components/TransactionDetails.tsx) | Transaction summary and structure log. |
+| [src/components/ScriptDebugger.tsx](src/components/ScriptDebugger.tsx) | Script diagnostics and signature hash tooltips. |
+| [vite.config.ts](vite.config.ts) | Development server and build configuration. |
 
-Yes, you can!
+## Limitations
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+Diagnostics are collected primarily when verification throws an exception. A returned `false` currently bypasses that error-handling path. The size shown in the summary is the transaction's serialised size, rather than the size of the complete BEEF payload.
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+The script view displays error information and assembly. Opcode execution positions are not currently populated by the analysis code.
+
+## Licence
+
+No licence file is currently included in this repository.
